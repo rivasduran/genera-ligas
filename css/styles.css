@@ -1,0 +1,118 @@
+/*
+**
+	APARIENCIA DE LOS FORMULARIOS PARA CREAR CERTIFICADOS
+**
+*/
+.formularios-approval{
+	padding: 1.5rem;
+    margin-right: 0;
+    margin-left: 0;
+    border-width: .2rem;
+}
+
+.formularios-approval .form-group{
+	margin-bottom: 1rem;
+}
+
+.formularios-approval label{
+	display: inline-block;
+	margin-bottom: .5rem;
+}
+
+.formularios-approval .form-control{
+	display: block;
+    width: 100%;
+    height: calc(2.25rem + 2px);
+    padding: .375rem .75rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #495057;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #ced4da;
+    border-radius: .25rem;
+    transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}
+
+.formularios-approval select.form-control{
+	display: block;
+	width: 100%;
+	height: calc(2.25rem + 2px);
+	padding: .375rem .75rem;
+	font-size: 1rem;
+	line-height: 1.5;
+	color: #495057;
+	background-color: #fff;
+	background-clip: padding-box;
+	border: 1px solid #ced4da;
+	border-radius: .25rem;
+	transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}
+
+.formularios-approval .text-muted{
+	color: #6c757d!important;
+}
+
+.formularios-approval .form-text{
+	display: block;
+    margin-top: .25rem;
+}
+
+.formularios-approval .small, small{
+	font-size: 80%;
+	font-weight: 400;
+}
+
+.formularios-approval .form-check{
+	position: relative;
+	display: block;
+	padding-left: 1.25rem;
+}
+
+.formularios-approval input[type=checkbox], input[type=radio]{
+	box-sizing: border-box;
+	padding: 0;
+}
+
+.formularios-approval .form-check-label{
+    margin-bottom: 0;
+}
+
+.formularios-approval .button.button-primary{
+	cursor: pointer;
+	display: inline-block;
+    font-weight: 400;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: middle;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    border: 1px solid transparent;
+    padding: .375rem .75rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    border-radius: .25rem;
+    transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+    color: #fff;
+    background-color: #007bff;
+    border-color: #007bff;
+    height: auto;
+}
+
+/*
+**
+    MEJORAS PARA EL FORMULARIO PARA JLEAGUE
+** 
+*/
+.formulario_generador_liga .form-group{
+    width: calc(33.33% - 40px);
+    float: left;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+.clear{
+    clear: both;
+}
