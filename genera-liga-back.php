@@ -81,6 +81,7 @@ function mi_contenido_paginas(){
 
 [do_widget id=sportspress-event-blocks-14]
 
+[do_widget id=sportspress-league-table-7]
 [/av_textblock]
 
 [/av_one_half][av_one_half min_height='' vertical_alignment='' space='' custom_margin='' margin='0px' padding='0px' border='' border_color='' radius='0px' background_color='' src='' background_position='top left' background_repeat='no-repeat' animation='' mobile_display='']
@@ -200,8 +201,6 @@ function menu_g_form_user_destination_ligas() {
   add_submenu_page( 'generar-liga', 'Mis cosas', 'Mis cosas', 'manage_options', 'mis-cosas', 'generador_de_ligas33' );
 }
 
-
-include("movimiento_ajax.php");
 /** Step 3. */
 function generador_de_ligas() {
   global $wpdb;
@@ -223,12 +222,6 @@ function generador_de_ligas() {
     $nueva_categoria        = $_POST['nueva_categoria'];
     $sp_categoria_nueva     = $_POST['sp_categoria_nueva'];
     $total_equipos          = $_POST['total_equipos'];
-
-    //LISTAS CALENDARIOS Y TABLAS
-    $nueva_tabla            = $_POST['nueva_tabla'];
-    $nueva_lista            = $_POST['nueva_lista'];
-    $ultimos_juegos         = $_POST['ultimos_juegos'];
-    $proximos_juegos        = $_POST['proximos_juegos'];
 
     //LUEGO CONSULTAMOS EN DB A QUE RED SERAN ENVIADAS Y CONSULTADAS LA INFORMACION CORRESPONDIENTE
     $variables_r = $wpdb->get_results("SELECT * FROM wp_df_red WHERE form = {$formulario_inscripcion} ");
@@ -390,7 +383,140 @@ function generador_de_ligas() {
     $jugadoresArray = [];
     
 
-    //ENVIAMOS POR AJAX LA TOTALIDAD DE LOS EQUIPOS $total_equipos
+    for ($i=0; $i <= count($total_equipos); $i++) { 
+      //echo "<h1>".$total_equipos[$i]."</h1>";
+
+      //AHORA CON LAS COMPETICIONES Y TODO PROCEDEMOS A REVISAR SI ESTOS EQUIPOS YA ESTAN RELACIONADOS CON ESTAS COMPETICIONES
+      //SI NO ESTAN RELACIONADOS PROCEDEMOS A RELACIONARLOS
+
+      //VARIABLES
+      //$sp_season
+      //$sp_league
+      //$nueva_categoria
+
+      //SEASON 
+      $conmp = $wpdb->get_results(" SELECT r.term_taxonomy_id FROM {$wpdb->prefix}term_relationships AS r WHERE r.object_id = {$total_equipos[$i]} AND (SELECT tx.taxonomy FROM {$wpdb->prefix}term_taxonomy AS tx WHERE tx.term_id =  r.term_taxonomy_id) = 'sp_season' AND r.term_taxonomy_id = '{$sp_season}' ");
+      $hay_season = 0;
+      foreach ($conmp as $key) {
+        $hay_season++;
+      }
+
+      if($hay_season == 0){
+        //SI ESTE EQUIPO NO CUENTA CON ESTE SEASON PROCEDEMOS A RELAICONARLO
+        $wpdb->insert( 
+          $wpdb->prefix."term_relationships", 
+            array( 
+              'object_id'          =>  $total_equipos[$i],
+              'term_taxonomy_id'   =>  $sp_season,
+              'term_order'         =>  "0"
+            ) 
+          ); 
+      }
+
+      array_push($season, $sp_season);
+
+      //COMPETICION
+      $conmp = $wpdb->get_results(" SELECT r.term_taxonomy_id FROM {$wpdb->prefix}term_relationships AS r WHERE r.object_id = {$total_equipos[$i]} AND (SELECT tx.taxonomy FROM {$wpdb->prefix}term_taxonomy AS tx WHERE tx.term_id =  r.term_taxonomy_id) = 'sp_league' AND r.term_taxonomy_id = '{$sp_league}' ");
+      $hay_season = 0;
+      foreach ($conmp as $key) {
+        $hay_season++;
+      }
+
+      if($hay_season == 0){
+        //SI ESTE EQUIPO NO CUENTA CON ESTE SEASON PROCEDEMOS A RELAICONARLO
+        $wpdb->insert( 
+          $wpdb->prefix."term_relationships", 
+            array( 
+              'object_id'          =>  $total_equipos[$i],
+              'term_taxonomy_id'   =>  $sp_league,
+              'term_order'         =>  "0"
+            ) 
+          ); 
+      }
+
+      //NUEVA COMPETICION
+      $conmp = $wpdb->get_results(" SELECT r.term_taxonomy_id FROM {$wpdb->prefix}term_relationships AS r WHERE r.object_id = {$total_equipos[$i]} AND (SELECT tx.taxonomy FROM {$wpdb->prefix}term_taxonomy AS tx WHERE tx.term_id =  r.term_taxonomy_id) = 'sp_league' AND r.term_taxonomy_id = '{$nueva_categoria}' ");
+      $hay_season = 0;
+      foreach ($conmp as $key) {
+        $hay_season++;
+      }
+
+      if($hay_season == 0){
+        //SI ESTE EQUIPO NO CUENTA CON ESTE SEASON PROCEDEMOS A RELAICONARLO
+        $wpdb->insert( 
+          $wpdb->prefix."term_relationships", 
+            array( 
+              'object_id'          =>  $total_equipos[$i],
+              'term_taxonomy_id'   =>  $nueva_categoria,
+              'term_order'         =>  "0"
+            ) 
+          ); 
+      }
+
+      //AHORA SOLO DEBEMOS AGARRAR LOS JUGADORES DE CADA EQUIPO Y RELACIONARLOS CON ESTAS METRICAS
+      array_push($competiciones, $sp_league);
+      array_push($competiciones, $nueva_categoria);
+    
+      //CONSULTAMOS LOS JUGADORES DE ESTE EQUIPO
+      //$jugador = $wpdb->get_results("SELECT p.* FROM {$wpdb->prefix}posts AS p WHERE p.ID IN(SELECT m.post_id FROM {$wpdb->prefix}postmeta AS m WHERE m.meta_value = {$total_equipos[$i]} AND m.meta_key = 'sp_team') AND p.post_type = 'sp_player' ");//OCULTAMOS ESTE YA QUE SOLO NECESITAMOS LOS JUGADORES INSCRITOS
+      $jugador = $wpdb->get_results("SELECT p.* FROM {$wpdb->prefix}posts AS p WHERE p.ID IN(SELECT m.post_id FROM wp_9_postmeta AS m WHERE m.meta_value = {$total_equipos[$i]} AND m.meta_key = 'sp_team') AND p.post_type = 'sp_player' AND p.post_author = (SELECT u.ID FROM wp_users AS u WHERE u.ID = p.post_author AND u.user_email = (SELECT f.value FROM wp_rg_lead_detail AS f WHERE f.value = u.user_email AND f.form_id = {$formulario_inscripcion} LIMIT 1) )");
+
+      foreach ($jugador as $jkey) {
+        //GUARDAMOS EL JUGADOR EN EL ARREGLO
+        array_push($jugadoresArray, $jkey->ID);
+
+        //echo "<span>{$jkey->ID} {$jkey->post_title}</span><br />";
+
+        //CONSULTAMOS SI ESTE JUGADOR ESTA EN ALGUNA DE LAS COMPETICIONES EN DONDE ESTA EL EQUIPOS
+        for ($i=0; $i <= count($competiciones); $i++) { 
+
+          //echo "<h1>Competicion -> {$competiciones[$i]}</h1>";
+          //AQUI RELACIONAMOS
+          $activo = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}term_relationships WHERE object_id = {$jkey->ID} AND term_taxonomy_id = {$competiciones[$i]} ");
+
+          if($activo <= 0){//SI NO EXISTE ESTA TAXONOMIA LA CREAMOS
+            $wpdb->insert( 
+              $wpdb->prefix."term_relationships", 
+              array( 
+                'object_id'     => $jkey->ID,
+                'term_taxonomy_id'  => $competiciones[$i],
+                'term_order'    => '0'
+              ) 
+            );
+
+            //echo "relacionando";
+          }else{
+            //echo "<br> Existe {$jkey->ID} {$competiciones[$i]}<br>";
+          }
+        }
+
+        for ($i=0; $i <= count($season); $i++) { 
+          //echo "<h1>Competicion -> {$competiciones[$i]}</h1>";
+          //AQUI RELACIONAMOS
+          $activo = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}term_relationships WHERE object_id = {$jkey->ID} AND term_taxonomy_id = {$season[$i]} ");
+          if($activo <= 0){//SI NO EXISTE ESTA TAXONOMIA LA CREAMOS
+            $wpdb->insert( 
+              $wpdb->prefix."term_relationships", 
+              array( 
+                'object_id'         => $jkey->ID,
+                'term_taxonomy_id'  => $season[$i],
+                'term_order'        => '0'
+              ) 
+            );
+            //echo "relacionando";
+          }else{
+            //echo "<br> Existe {$jkey->ID} {$competiciones[$i]}<br>";
+          }
+        }
+      }
+
+      //BACIAMOS EL ARREGLO DE COMPETICIONES
+      $competiciones = [];
+      $season = [];
+      $jugadoresArray = [];
+
+
+    }
 
     //ESTE ES EL ARREGLO DE LOS ID QUE DEBEMOS RELACIONAR POSTERIORMENTE
     $arreglos_id = [];
@@ -451,7 +577,7 @@ function generador_de_ligas() {
 
     //YA CON LA TABLA CREADA PROCEDEMOS A IGUALAR EL POST_META DE UNA TABLA CREADA
     //$tabla_creada = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}postmeta WHERE post_id = 3694");
-    $tabla_creada = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}postmeta WHERE post_id = {$nueva_tabla}");
+    $tabla_creada = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}postmeta WHERE post_id = 3694");
     foreach ($tabla_creada as $key) {
       //ESTRUCTURA DE LA TABLA
       //post_id
@@ -524,7 +650,7 @@ function generador_de_ligas() {
 
     //YA CON LA TABLA CREADA PROCEDEMOS A IGUALAR EL POST_META DE UNA TABLA CREADA
     //$tabla_creada = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}postmeta WHERE post_id = 8293");
-    $tabla_creada = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}postmeta WHERE post_id = {$ultimos_juegos}");
+    $tabla_creada = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}postmeta WHERE post_id = 2290");
     foreach ($tabla_creada as $key) {
       //ESTRUCTURA DE LA TABLA
       //post_id
@@ -549,8 +675,8 @@ function generador_de_ligas() {
       INSERTAMOS CALENDARIOS PROGAMADOS
     **
     */
-    $nombre_calendario    = "Calendario - ".$nombre." - Programados";
-    $nombre_calendario_f  = "Calendario-".$nombreFinal."-Programados";
+    $nombre_calendario    = "Calendario - ".$nombre." - Publicado";
+    $nombre_calendario_f  = "Calendario-".$nombreFinal."-Publicado";
     //INSERTAMOS EN EL POST
     $wpdb->insert(
               $wpdb->prefix."posts",
@@ -595,7 +721,7 @@ function generador_de_ligas() {
 
     //YA CON LA TABLA CREADA PROCEDEMOS A IGUALAR EL POST_META DE UNA TABLA CREADA
     //$tabla_creada = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}postmeta WHERE post_id = 8296");
-    $tabla_creada = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}postmeta WHERE post_id = {$proximos_juegos}");
+    $tabla_creada = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}postmeta WHERE post_id = 2292");
     foreach ($tabla_creada as $key) {
       //ESTRUCTURA DE LA TABLA
       //post_id
@@ -702,7 +828,7 @@ function generador_de_ligas() {
 
     //YA CON LA TABLA CREADA PROCEDEMOS A IGUALAR EL POST_META DE UNA TABLA CREADA
     //$tabla_creada = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}postmeta WHERE post_id = 8324");
-    $tabla_creada = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}postmeta WHERE post_id = {$nueva_lista}");
+    $tabla_creada = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}postmeta WHERE post_id = 7396");
     foreach ($tabla_creada as $key) {
       //ESTRUCTURA DE LA TABLA
       //post_id
@@ -1035,71 +1161,13 @@ function generador_de_ligas() {
                 )
               );
     }
-
-
-    //CREAMOS LOS JSON QUE ENVIAREMOS DE RESPUESTA
-    class Mis_arreglos{
-      public $equipos;
-      public $sp_season;
-      public $sp_league;
-      public $nueva_categoria;
-      public $competiciones;
-      public $formulario_inscripcion;
-    }
-
-    $obj = new Mis_arreglos;
-    $obj->equipos = [];
-
-    //RECORREMOS LOS EQUIPOS
-    for ($i=0; $i < count($total_equipos); $i++) { 
-      $obj->equipos[] = $total_equipos[$i];
-    }
-
-    //AGREGAMOS LAS METRICAS
-    $obj->sp_season               = $sp_season;
-    $obj->sp_league               = $sp_league;
-    $obj->nueva_categoria         = $nueva_categoria;
-    $obj->competiciones           = $competiciones;
-    $obj->formulario_inscripcion  = $formulario_inscripcion;
-
-    $myJSON = json_encode($obj);
-
-
-    //PROCEDEMOS A ENVIAR POR AJAX TODOS LOS EQUIPOS
-    ?>
-      <script>
-        //total_equipos
-        //sp_season
-        //sp_league
-        //nueva_categoria
-        //competiciones
-
-        //ARREGLAREMOS ADECUADAMENTE ESTAS OPCIONES
-
-        recorrer_todos_equipos(<?php echo $myJSON; ?>, 1);
-        //pruebas_ht(<?php echo $myJSON; ?>, 1);
-
-        //alert(momentaneo1[0][0]);
-
-        //momentaneo1 = [];
-        
-      </script>
-    <?php
-
-
-    $url_web_creada = "<h1> Esta es la nueva web <a href='".$url_nuevo."' target='_blank'> click aqui </a></h1> ";
   }
-
-  
 ?>
 
   <h1>Crear nueva liga:</h1>
   <?php echo $url_web_creada; ?>
-  <div class="respuesta_solicitud">
-    
-  </div>
   <div class="formularios-approval quarterWidth formulario_generador_liga">
-    <form method="post" action="" class='creador_de_ligas_j'>
+    <form method="post" action="">
       <input type="text" name="crear_liga_nueva" value="1" required style="display: none;" />
 
       <!-- TITULO DEL FORMULARIO -->
@@ -1203,93 +1271,6 @@ function generador_de_ligas() {
         </select>
         <input type="hidden" class="form-control" name="sp_categoria_nueva" placeholder="Categoria nueva" />
         <small id="title" class="form-text text-muted">Competicion (Masculino A - Masculino B).</small>
-      </div>
-
-
-      <!-- TABLA DE EQUIPOS -->
-      <div class="form-group nueva_tabla">
-        <label for="inputTitle">Tabla de equipos</label>
-        <!--<input type="text" class="form-control" name="titulo" id="inputTitle" placeholder="Enter Title">-->
-        <select class="form-control" name="nueva_tabla">
-          <option value="">Seleccione</option>
-       <?php
-          $equipos = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}posts WHERE post_type =  'sp_table' AND post_status = 'publish' ");
-
-          foreach ($equipos as $key) {
-            echo "<option value='{$key->ID}'>{$key->post_title}</option>";
-          }
-        ?>
-          <!--
-          <option value="otro">Otra</option>
-          -->
-        </select>
-        <input type="hidden" class="form-control" name="sp_categoria_nueva" placeholder="Categoria nueva" />
-        <small id="title" class="form-text text-muted">Tabla de equipos.</small>
-      </div>
-
-      <!-- LISTA DE JUGADORES -->
-      <div class="form-group nueva_lista">
-        <label for="inputTitle">Lista de jugadores</label>
-        <!--<input type="text" class="form-control" name="titulo" id="inputTitle" placeholder="Enter Title">-->
-        <select class="form-control" name="nueva_lista">
-          <option value="">Seleccione</option>
-       <?php
-          $equipos = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}posts WHERE post_type =  'sp_list' AND post_status = 'publish' ");
-
-          foreach ($equipos as $key) {
-            echo "<option value='{$key->ID}'>{$key->post_title}</option>";
-          }
-        ?>
-          <!--
-          <option value="otro">Otra</option>
-          -->
-        </select>
-        <input type="hidden" class="form-control" name="sp_categoria_nueva" placeholder="Categoria nueva" />
-        <small id="title" class="form-text text-muted">Seleccione lista.</small>
-      </div>
-
-
-      <!-- LISTA DE JUGADORES -->
-      <div class="form-group ultimos_juegos">
-        <label for="inputTitle">Ultimos Juegos</label>
-        <!--<input type="text" class="form-control" name="titulo" id="inputTitle" placeholder="Enter Title">-->
-        <select class="form-control" name="ultimos_juegos">
-          <option value="">Seleccione</option>
-       <?php
-          $equipos = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}posts WHERE post_type =  'sp_calendar' AND post_status = 'publish' ");
-
-          foreach ($equipos as $key) {
-            echo "<option value='{$key->ID}'>{$key->post_title}</option>";
-          }
-        ?>
-          <!--
-          <option value="otro">Otra</option>
-          -->
-        </select>
-        <input type="hidden" class="form-control" name="sp_categoria_nueva" placeholder="Categoria nueva" />
-        <small id="title" class="form-text text-muted">Seleccione la pagina demo donde tenemos los ultimos juegos.</small>
-      </div>
-
-
-      <!-- LISTA DE JUGADORES -->
-      <div class="form-group proximos_juegos">
-        <label for="inputTitle">Proximos Juegos</label>
-        <!--<input type="text" class="form-control" name="titulo" id="inputTitle" placeholder="Enter Title">-->
-        <select class="form-control" name="proximos_juegos">
-          <option value="">Seleccione</option>
-       <?php
-          $equipos = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}posts WHERE post_type =  'sp_calendar' AND post_status = 'publish' ");
-
-          foreach ($equipos as $key) {
-            echo "<option value='{$key->ID}'>{$key->post_title}</option>";
-          }
-        ?>
-          <!--
-          <option value="otro">Otra</option>
-          -->
-        </select>
-        <input type="hidden" class="form-control" name="sp_categoria_nueva" placeholder="Categoria nueva" />
-        <small id="title" class="form-text text-muted">Seleccione la pagina demo donde tenemos los proximos juegos.</small>
       </div>
 
 
